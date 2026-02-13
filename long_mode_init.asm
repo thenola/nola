@@ -12,8 +12,9 @@ BITS 32
 SECTION .text
 global long_mode_init
 extern gdt64_descriptor
-extern kernel_main
 extern stack_top
+extern mb_magic
+extern mb_info
 
 ; Простая иерархия таблиц страниц.
 ; Мы создаём:
@@ -195,7 +196,9 @@ setup_paging:
 
 BITS 64
 
-extern vga_print
+extern kernel_main
+extern mb_magic
+extern mb_info
 
 long_mode_entry:
     ; Настраиваем 64-битный стек (используем тот же стек, но в RSP).
@@ -211,9 +214,15 @@ long_mode_entry:
     mov gs, ax
 
     ; Здесь мы уже в long mode, можно вызывать 64-битный C-код.
-    ; Стек 16-байтово выровнен, так что можно сразу вызывать kernel_main.
+    ; Подготовим аргументы для kernel_main(magic, info_ptr)
+    ; в соответствии с System V ABI: RDI, RSI.
 
-    extern kernel_main
+    mov eax, dword [rel mb_magic]
+    mov edi, eax                     ; 1‑й аргумент: magic (32 бита)
+
+    mov eax, dword [rel mb_info]
+    mov rsi, rax                     ; 2‑й аргумент: info ptr (zero‑extend до 64 бит)
+
     call kernel_main
 
 .halt64:

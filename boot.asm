@@ -17,10 +17,12 @@ multiboot2_header_start:
 
 ; --- Tag: entry address (указывает на нашу 32-битную точку входа) ---
 align 8
+multiboot_entry_tag_start:
     dw 3                     ; type = 3 (entry address)
     dw 0                     ; flags = 0 (необязательный)
-    dd 12                    ; size = 12 bytes (8 header + 4 entry_addr)
+    dd multiboot_entry_tag_end - multiboot_entry_tag_start
     dd start                 ; адрес точки входа (32-битный адрес)
+multiboot_entry_tag_end:
 
 ; --- Tag: end (обязателен) ---
 align 8
@@ -46,9 +48,9 @@ start:
     ; Настраиваем стек (32-битный)
     mov esp, stack_top
 
-    ; Сохраняем multiboot параметры (если захотим использовать позже)
-    push eax                 ; magic
-    push ebx                 ; multiboot info pointer
+    ; Сохраняем multiboot параметры в глобальные переменные
+    mov [mb_magic], eax      ; magic
+    mov [mb_info],  ebx      ; multiboot info pointer
 
     ; Переход в long mode и дальнейшая инициализация
     call long_mode_init
@@ -60,6 +62,15 @@ start:
 
 SECTION .bss
 align 16
+
+global mb_magic
+global mb_info
+
+mb_magic:
+    resd 1
+mb_info:
+    resd 1
+
 stack_bottom:
     resb 16384               ; 16 KiB стек
 stack_top:

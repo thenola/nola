@@ -4,6 +4,7 @@
 #include "vga.h"
 #include "idt.h"
 #include "paging.h"
+#include "multiboot2.h"
 
 /* Простой cpuid-хелпер. */
 static void cpuid(uint32_t leaf, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d) {
@@ -54,11 +55,22 @@ static void check_64bit_mode(void) {
     vga_println(" bytes");
 }
 
-void kernel_main(void) {
+void kernel_main(uint32_t mb_magic, uint64_t mb_info_addr) {
     vga_init(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
 
     vga_println("Hello from 64-bit kernel!");
     vga_println("---------------------------");
+
+    vga_print("Multiboot2 magic: ");
+    vga_print_hex64(mb_magic);
+    vga_putc('\n');
+
+    vga_print("Multiboot2 info addr: ");
+    vga_print_hex64(mb_info_addr);
+    vga_putc('\n');
+
+    /* Этап 1 плана: базовый разбор структуры Multiboot2. */
+    multiboot2_dump_info(mb_magic, mb_info_addr);
 
     /* Демонстрация 64-бит режима. */
     check_64bit_mode();
@@ -66,8 +78,8 @@ void kernel_main(void) {
     /* Информация о процессоре. */
     print_cpu_info();
 
-    /* Инициализация простого аллокатора страниц. */
-    paging_init();
+    /* Инициализация фрейм-аллокатора страниц на основе карты памяти Multiboot2. */
+    paging_init(mb_info_addr);
     void *page1 = alloc_page();
     (void)page1;
 
