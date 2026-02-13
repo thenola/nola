@@ -78,12 +78,12 @@ void kernel_main(uint32_t mb_magic, uint64_t mb_info_addr) {
     /* Информация о процессоре. */
     print_cpu_info();
 
-    /* Инициализация фрейм-аллокатора страниц на основе карты памяти Multiboot2. */
-    paging_init(mb_info_addr);
+    /* Инициализация простого аллокатора страниц от конца ядра. */
+    paging_init();
     void *page1 = alloc_page();
     (void)page1;
 
-    /* Инициализация IDT и базовых обработчиков прерываний. */
+    /* Инициализация IDT и базовых обработчиков прерываний (без включения IRQ). */
     idt_init();
     vga_println("IDT initialized.");
 

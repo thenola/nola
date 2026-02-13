@@ -25,18 +25,22 @@ extern mb_info
 
 SECTION .bss
 align 4096
+global pml4
 pml4:
     resq 512
 
 align 4096
+global pdpt
 pdpt:
     resq 512
 
 align 4096
+global pd
 pd:
     resq 512
 
 align 4096
+global pt0
 pt0:
     resq 512
 

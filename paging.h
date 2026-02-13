@@ -6,7 +6,7 @@
 /* Размер страницы по умолчанию. */
 #define PAGE_SIZE 4096
 
-void paging_init(uint64_t mb_info_addr);
+void paging_init(void);
 void *alloc_page(void);
 
 #endif /* PAGING_H */

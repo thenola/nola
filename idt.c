@@ -20,9 +20,7 @@ static void idt_set_gate(int num, void (*handler)(void)) {
     idt[num].zero        = 0;
 }
 
-/* Простой обработчик-заглушка. Для корректного ABI interrupt handler в реальной ОС
- * лучше реализовать в ассемблере с использованием IRETQ, но для демонстрации
- * достаточно обычной функции, так как прерывания не включаются. */
+/* Простой обработчик-заглушка. Прерывания мы не включаем, так что это только демонстрация. */
 static void isr_default(void) {
     vga_println("Interrupt or exception occurred (stub handler).");
 }
@@ -50,4 +48,3 @@ void idt_init(void) {
 
     lidt(&idtr);
 }
-
