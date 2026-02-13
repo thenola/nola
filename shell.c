@@ -18,8 +18,17 @@ static inline uint8_t inb(uint16_t port) {
 
 /* Простые константы ядра для info/uname/version. */
 static const char *KERNEL_NAME    = "nola";
-static const char *KERNEL_VERSION = "1.5.0sn";
+static const char *KERNEL_VERSION = "1.6.0sn";
 static const char *KERNEL_BUILD   = __DATE__ " " __TIME__;
+
+/* Отсчёт времени с момента старта shell (для uptime) на основе TSC. */
+static uint64_t tsc_start = 0;
+
+static uint64_t rdtsc(void) {
+    uint32_t lo, hi;
+    __asm__ volatile("rdtsc" : "=a"(lo), "=d"(hi));
+    return ((uint64_t)hi << 32) | lo;
+}
 
 static int str_eq(const char *a, const char *b) {
     while (*a && *b) {
@@ -37,6 +46,9 @@ static void cmd_help(void) {
     vga_println("  info          - show info");
     vga_println("  whoami        - show current user");
     vga_println("  su <user>     - switch user (root/user)");
+    vga_println("  hostname [h]  - get/set hostname");
+    vga_println("  setcolor fg [bg] - set console colors");
+    vga_println("  screen [r c]  - get/set logical screen size");
     vga_println("  mem           - show memory info");
     vga_println("  uptime        - show system uptime");
     vga_println("  version       - show kernel version");
@@ -75,9 +87,89 @@ static void cmd_mem(void) {
     vga_putc('\n');
 }
 
+static void cmd_hostname(const char *args) {
+    if (!args || *args == '\0' || *args == '\n' || *args == ' ') {
+        const kernel_config_t *cfg = config_get();
+        vga_println(cfg->hostname);
+        return;
+    }
+    config_set_hostname(args);
+    const kernel_config_t *cfg = config_get();
+    vga_print("hostname set to: ");
+    vga_println(cfg->hostname);
+}
+
+static void cmd_setcolor(const char *args) {
+    char fg[16] = {0};
+    char bg[16] = {0};
+    int i = 0, j = 0;
+
+    /* fg */
+    while (args[i] == ' ') i++;
+    while (args[i] && args[i] != ' ' && j < (int)sizeof(fg) - 1) {
+        fg[j++] = args[i++];
+    }
+    fg[j] = '\0';
+    /* bg */
+    j = 0;
+    while (args[i] == ' ') i++;
+    while (args[i] && args[i] != ' ' && j < (int)sizeof(bg) - 1) {
+        bg[j++] = args[i++];
+    }
+    bg[j] = '\0';
+
+    if (fg[0] == '\0') {
+        vga_println("setcolor: usage: setcolor <fg> [bg]");
+        return;
+    }
+    config_set_colors(fg, bg[0] ? bg : 0);
+}
+
+static void cmd_screen(const char *args) {
+    const kernel_config_t *cfg = config_get();
+    if (!args || *args == '\0' || *args == ' ') {
+        vga_print("screen: ");
+        vga_print_uint64(cfg->screen_rows);
+        vga_print("x");
+        vga_print_uint64(cfg->screen_cols);
+        vga_putc('\n');
+        return;
+    }
+
+    uint64_t rows = 0, cols = 0;
+    int i = 0;
+    while (args[i] == ' ') i++;
+    while (args[i] >= '0' && args[i] <= '9') {
+        rows = rows * 10 + (uint64_t)(args[i] - '0');
+        i++;
+    }
+    while (args[i] == ' ') i++;
+    while (args[i] >= '0' && args[i] <= '9') {
+        cols = cols * 10 + (uint64_t)(args[i] - '0');
+        i++;
+    }
+
+    if (rows == 0 || cols == 0) {
+        vga_println("screen: usage: screen <rows> <cols>");
+        return;
+    }
+
+    config_set_screen((uint8_t)rows, (uint8_t)cols);
+}
+
 static void cmd_uptime(void) {
-    /* Таймера пока нет — просто сообщаем. */
-    vga_println("uptime: timer not implemented (no PIT/APIC yet).");
+    uint64_t now = rdtsc();
+    uint64_t cycles = now - tsc_start;
+
+    /* Грубая оценка секунд при частоте ~1 ГГц. */
+    uint64_t seconds = cycles / 1000000000ull;
+
+    vga_print("uptime: ");
+    vga_print_uint64(seconds);
+    vga_print(" s (");
+    vga_print_hex64(cycles);
+    vga_print(" cycles)");
+    vga_putc('\n');
 }
 
 static void cmd_version(void) {
@@ -144,17 +236,43 @@ static void cmd_reboot(void) {
 }
 
 static void cmd_ps(void) {
-    vga_println("  PID   CMD");
-    vga_println("    1   [kernel-shell]   (no multitasking implemented)");
+    vga_println("  PID   USER   CMD");
+    vga_print("    1   ");
+    vga_print(user_get_name());
+    vga_print("   shell");
+    vga_putc('\n');
 }
 
 static void cmd_kill(const char *args) {
-    (void)args;
-    vga_println("kill: process management not implemented yet.");
+    /* Простейшая реализация: kill 1 останавливает систему. */
+    while (*args == ' ') args++;
+    if (*args == '\0') {
+        vga_println("kill: usage: kill <pid>");
+        return;
+    }
+
+    uint64_t pid = 0;
+    while (*args >= '0' && *args <= '9') {
+        pid = pid * 10 + (uint64_t)(*args - '0');
+        args++;
+    }
+
+    if (pid == 1) {
+        vga_println("kill: terminating PID 1 (shell)...");
+        cmd_halt();
+    } else {
+        vga_println("kill: no such pid");
+    }
 }
 
 static void cmd_dmesg(void) {
-    vga_println("dmesg: kernel log buffer not implemented yet.");
+    /* Пока просто выводим основные шаги инициализации. */
+    vga_println("nola: booting 64-bit kernel");
+    vga_println("nola: paging initialized (bump allocator)");
+    vga_println("nola: IDT initialized (basic stubs)");
+    vga_println("nola: in-memory FS initialized (/, /home/user)");
+    vga_println("nola: keyboard driver (polling) ready");
+    vga_println("nola: shell started");
 }
 
 static void cmd_modules(void) {
@@ -217,6 +335,12 @@ static void shell_execute(const char *line) {
         }
     } else if (str_eq(cmd, "mem")) {
         cmd_mem();
+    } else if (str_eq(cmd, "hostname")) {
+        cmd_hostname(args);
+    } else if (str_eq(cmd, "setcolor")) {
+        cmd_setcolor(args);
+    } else if (str_eq(cmd, "screen")) {
+        cmd_screen(args);
     } else if (str_eq(cmd, "uptime")) {
         cmd_uptime();
     } else if (str_eq(cmd, "version")) {
@@ -291,6 +415,9 @@ static void shell_execute(const char *line) {
 void shell_run(void) {
     char buf[128];
     keyboard_init();
+
+    /* Захватываем начальное значение TSC для расчёта uptime. */
+    tsc_start = rdtsc();
 
     vga_println("");
     vga_println("Nola shell. Type 'help' for commands.");

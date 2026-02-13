@@ -8,13 +8,19 @@
 #include "shell.h"
 #include "fs.h"
 #include "user.h"
+#include "config.h"
 
 void kernel_main(uint32_t mb_magic, uint64_t mb_info_addr) {
     /* Сразу после загрузки очищаем экран и ставим белый текст на чёрном фоне. */
     (void)mb_magic;
     (void)mb_info_addr;
 
-    vga_init(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+    /* Инициализируем конфиг ядра (hostname, цвета, размеры экрана). */
+    config_init();
+
+    /* Настраиваем VGA под конфиг. */
+    const kernel_config_t *cfg = config_get();
+    vga_init(cfg->fg, cfg->bg);
 
     /* Инициализация простого аллокатора страниц от конца ядра. */
     paging_init();
