@@ -1,4 +1,5 @@
 ## Nola 64-bit kernel 
+<img width="843" height="569" alt="{06DC130C-0EF4-4774-A45E-4A2943527AB8}" src="https://github.com/user-attachments/assets/ce7be6d9-6bd2-4a10-8176-e597214fb2f6" />
 
 ### build
 
