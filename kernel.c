@@ -5,92 +5,32 @@
 #include "idt.h"
 #include "paging.h"
 #include "multiboot2.h"
-
-/* Простой cpuid-хелпер. */
-static void cpuid(uint32_t leaf, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d) {
-    uint32_t eax, ebx, ecx, edx;
-    __asm__ volatile("cpuid"
-                     : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
-                     : "a"(leaf), "c"(0));
-    if (a) *a = eax;
-    if (b) *b = ebx;
-    if (c) *c = ecx;
-    if (d) *d = edx;
-}
-
-static void print_cpu_info(void) {
-    uint32_t eax, ebx, ecx, edx;
-    char vendor[13];
-
-    cpuid(0, &eax, &ebx, &ecx, &edx);
-
-    vendor[0]  = (char)(ebx & 0xFF);
-    vendor[1]  = (char)((ebx >> 8) & 0xFF);
-    vendor[2]  = (char)((ebx >> 16) & 0xFF);
-    vendor[3]  = (char)((ebx >> 24) & 0xFF);
-    vendor[4]  = (char)(edx & 0xFF);
-    vendor[5]  = (char)((edx >> 8) & 0xFF);
-    vendor[6]  = (char)((edx >> 16) & 0xFF);
-    vendor[7]  = (char)((edx >> 24) & 0xFF);
-    vendor[8]  = (char)(ecx & 0xFF);
-    vendor[9]  = (char)((ecx >> 8) & 0xFF);
-    vendor[10] = (char)((ecx >> 16) & 0xFF);
-    vendor[11] = (char)((ecx >> 24) & 0xFF);
-    vendor[12] = '\0';
-
-    vga_print("CPU vendor: ");
-    vga_println(vendor);
-}
-
-static void check_64bit_mode(void) {
-    uint16_t cs;
-    __asm__ volatile("mov %%cs, %0" : "=r"(cs));
-
-    vga_print("Current CS selector: 0x");
-    vga_print_hex64((uint64_t)cs);
-    vga_putc('\n');
-
-    vga_print("Size of pointer: ");
-    vga_print_uint64((uint64_t)sizeof(void *));
-    vga_println(" bytes");
-}
+#include "shell.h"
+#include "fs.h"
+#include "user.h"
 
 void kernel_main(uint32_t mb_magic, uint64_t mb_info_addr) {
-    vga_init(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+    /* Сразу после загрузки очищаем экран и ставим белый текст на чёрном фоне. */
+    (void)mb_magic;
+    (void)mb_info_addr;
 
-    vga_println("Hello from 64-bit kernel!");
-    vga_println("---------------------------");
-
-    vga_print("Multiboot2 magic: ");
-    vga_print_hex64(mb_magic);
-    vga_putc('\n');
-
-    vga_print("Multiboot2 info addr: ");
-    vga_print_hex64(mb_info_addr);
-    vga_putc('\n');
-
-    /* Этап 1 плана: базовый разбор структуры Multiboot2. */
-    multiboot2_dump_info(mb_magic, mb_info_addr);
-
-    /* Демонстрация 64-бит режима. */
-    check_64bit_mode();
-
-    /* Информация о процессоре. */
-    print_cpu_info();
+    vga_init(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
 
     /* Инициализация простого аллокатора страниц от конца ядра. */
     paging_init();
-    void *page1 = alloc_page();
-    (void)page1;
 
     /* Инициализация IDT и базовых обработчиков прерываний (без включения IRQ). */
     idt_init();
-    vga_println("IDT initialized.");
+    
+    /* После инициализации всё лишнее не печатаем — сразу чистый экран и shell. */
+    vga_clear();
 
-    vga_println("Kernel initialization complete. System is running.");
+    /* Инициализация простого in-memory FS. */
+    fs_init();
 
-    for (;;) {
-        __asm__ volatile("hlt");
-    }
+    /* Инициализация пользователей (root и user). */
+    user_init();
+
+    shell_run();
 }
 

@@ -11,7 +11,7 @@ CFLAGS   := -m64 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pic 
 LDFLAGS  := -T linker.ld -nostdlib -z max-page-size=0x1000 -no-pie
 ASFLAGS  := -f elf64
 
-SRCS_C   := kernel.c vga.c idt.c paging.c multiboot2.c
+SRCS_C   := kernel.c vga.c idt.c paging.c multiboot2.c keyboard.c shell.c fs.c user.c
 SRCS_ASM := boot.asm long_mode_init.asm gdt.asm
 
 OBJS     := $(SRCS_C:.c=.o) $(SRCS_ASM:.asm=.o)

@@ -8,6 +8,7 @@
 
 void paging_init(void);
 void *alloc_page(void);
+uint64_t paging_get_next_free(void);
 
 #endif /* PAGING_H */
 
