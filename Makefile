@@ -4,17 +4,23 @@ ISO      := kernel.iso
 CC       ?= x86_64-elf-gcc
 AS       := nasm
 
+# Пути поиска заголовков
+INCLUDES := -Ikernel -Idrivers -Iarch -Imm -Ifs -Ishell -Ilib
+
 # Важно для обработчиков прерываний: отключаем red zone и SSE,
 # чтобы GCC не пытался использовать SSE-инструкции в ISR.
 # Также отключаем PIE, так как ядро должно быть не-PIE.
-CFLAGS   := -m64 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -mno-sse -mno-sse2 -mno-mmx -mno-3dnow
+CFLAGS   := -m64 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -mno-sse -mno-sse2 -mno-mmx -mno-3dnow $(INCLUDES)
 LDFLAGS  := -T linker.ld -nostdlib -z max-page-size=0x1000 -no-pie
 ASFLAGS  := -f elf64
 
-SRCS_C   := kernel.c vga.c idt.c paging.c multiboot2.c keyboard.c shell.c fs.c user.c config.c
-SRCS_ASM := boot.asm long_mode_init.asm gdt.asm
+SRCS_C   := kernel/kernel.c drivers/vga.c drivers/keyboard.c arch/idt.c mm/paging.c \
+            lib/multiboot2.c lib/config.c lib/user.c shell/shell.c fs/fs.c
+SRCS_ASM := boot/boot.asm boot/long_mode_init.asm boot/gdt.asm
 
-OBJS     := $(SRCS_C:.c=.o) $(SRCS_ASM:.asm=.o)
+OBJS     := kernel/kernel.o drivers/vga.o drivers/keyboard.o arch/idt.o mm/paging.o \
+            lib/multiboot2.o lib/config.o lib/user.o shell/shell.o fs/fs.o \
+            boot/boot.o boot/long_mode_init.o boot/gdt.o
 
 .PHONY: all clean run debug
 
@@ -44,4 +50,3 @@ debug: $(ISO)
 
 clean:
 	rm -rf $(OBJS) $(TARGET) $(ISO) isodir
-
