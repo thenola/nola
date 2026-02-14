@@ -24,5 +24,8 @@ struct idt_ptr {
 
 void idt_init(void);
 
+/* Вызывается из isr_common. vector 0–31, error_code для page fault и др. */
+void idt_handler(uint64_t vector, uint64_t error_code);
+
 #endif /* IDT_H */
 

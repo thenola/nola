@@ -14,13 +14,15 @@ CFLAGS   := -m64 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pic 
 LDFLAGS  := -T linker.ld -nostdlib -z max-page-size=0x1000 -no-pie
 ASFLAGS  := -f elf64
 
-SRCS_C   := kernel/kernel.c drivers/vga.c drivers/keyboard.c arch/idt.c mm/paging.c mm/heap.c \
-            lib/multiboot2.c lib/config.c shell/shell.c fs/fs.c
-SRCS_ASM := boot/boot.asm boot/long_mode_init.asm boot/gdt.asm
+SRCS_C   := kernel/kernel.c drivers/vga.c drivers/keyboard.c arch/idt.c arch/gdt.c arch/syscall.c \
+            arch/process.c arch/cpu.c \
+            mm/paging.c mm/heap.c lib/multiboot2.c lib/config.c shell/shell.c fs/fs.c
+SRCS_ASM := boot/boot.asm boot/long_mode_init.asm boot/gdt.asm boot/syscall.asm arch/isr.asm
 
-OBJS     := kernel/kernel.o drivers/vga.o drivers/keyboard.o arch/idt.o mm/paging.o mm/heap.o \
-            lib/multiboot2.o lib/config.o shell/shell.o fs/fs.o \
-            boot/boot.o boot/long_mode_init.o boot/gdt.o
+OBJS     := kernel/kernel.o drivers/vga.o drivers/keyboard.o arch/idt.o arch/gdt.o arch/syscall.o \
+            arch/process.o arch/cpu.o \
+            mm/paging.o mm/heap.o lib/multiboot2.o lib/config.o shell/shell.o fs/fs.o \
+            boot/boot.o boot/long_mode_init.o boot/gdt.o boot/syscall.o arch/isr.o
 
 .PHONY: all clean run debug
 

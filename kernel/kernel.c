@@ -3,6 +3,8 @@
 
 #include "vga.h"
 #include "idt.h"
+#include "gdt.h"
+#include "process.h"
 #include "paging.h"
 #include "heap.h"
 #include "multiboot2.h"
@@ -29,8 +31,14 @@ void kernel_main(uint32_t mb_magic, uint64_t mb_info_addr) {
     /* Инициализация heap (kmalloc/kfree). */
     heap_init();
 
-    /* Инициализация IDT и базовых обработчиков прерываний (без включения IRQ). */
+    /* Инициализация IDT и обработчиков исключений. */
     idt_init();
+
+    /* Минимальная таблица процессов (PID 1). */
+    process_init();
+
+    /* GDT/TSS и SYSCALL (User/Kernel разделение). */
+    gdt_init();
     
     /* После инициализации всё лишнее не печатаем — сразу чистый экран и shell. */
     vga_clear();

@@ -5,6 +5,7 @@
 #include "heap.h"
 #include "fs.h"
 #include "config.h"
+#include "cpu.h"
 #include <stdint.h>
 
 static const char *KERNEL_NAME    = "nola";
@@ -42,27 +43,14 @@ static void cmd_mem(void) {
     vga_putc('\n');
 }
 
-static inline void outb(uint16_t port, uint8_t value) {
-    __asm__ volatile("outb %0, %1" :: "a"(value), "Nd"(port));
-}
-
-static inline uint8_t inb(uint16_t port) {
-    uint8_t value;
-    __asm__ volatile("inb %1, %0" : "=a"(value) : "Nd"(port));
-    return value;
-}
-
 static void cmd_halt(void) {
     vga_println("Halting...");
-    for (;;) __asm__ volatile("cli; hlt");
+    cpu_halt();
 }
 
 static void cmd_reboot(void) {
     vga_println("Rebooting...");
-    __asm__ volatile("cli");
-    while (inb(0x64) & 0x02) {}
-    outb(0x64, 0xFE);
-    for (;;) __asm__ volatile("hlt");
+    cpu_reboot();
 }
 
 static void shell_execute(const char *line) {
