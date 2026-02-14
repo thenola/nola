@@ -4,6 +4,7 @@
 #include "vga.h"
 #include "idt.h"
 #include "paging.h"
+#include "heap.h"
 #include "multiboot2.h"
 #include "shell.h"
 #include "fs.h"
@@ -24,6 +25,9 @@ void kernel_main(uint32_t mb_magic, uint64_t mb_info_addr) {
 
     /* Инициализация простого аллокатора страниц от конца ядра. */
     paging_init();
+
+    /* Инициализация heap (kmalloc/kfree). */
+    heap_init();
 
     /* Инициализация IDT и базовых обработчиков прерываний (без включения IRQ). */
     idt_init();

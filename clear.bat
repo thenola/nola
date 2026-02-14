@@ -1,0 +1,1 @@
+@docker run --rm -it -v "%cd%:/workspace" -w /workspace nola-build make clean

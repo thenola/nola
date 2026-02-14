@@ -40,8 +40,22 @@ struct multiboot_mmap_entry {
     uint32_t zero;
 } __attribute__((packed));
 
-/* Простой дамп основных тегов Multiboot2 на экран (этап 1 плана). */
+/* Тег модуля. */
+struct multiboot_tag_module {
+    uint32_t type;
+    uint32_t size;
+    uint32_t mod_start;
+    uint32_t mod_end;
+    char string[];
+} __attribute__((packed));
+
 void multiboot2_dump_info(uint32_t magic, uint64_t info_addr);
+
+/* Сохранить адрес multiboot info для последующего парсинга. */
+void multiboot2_set_info(uint64_t info_addr);
+
+/* Получить модуль по индексу (0-based). Возвращает 0 при успехе. */
+int multiboot2_get_module(int index, uint64_t *start, uint64_t *end);
 
 #endif /* MULTIBOOT2_H */
 

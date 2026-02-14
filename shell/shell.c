@@ -2,6 +2,7 @@
 #include "vga.h"
 #include "keyboard.h"
 #include "paging.h"
+#include "heap.h"
 #include "fs.h"
 #include "user.h"
 #include "config.h"
@@ -51,6 +52,7 @@ static void cmd_help(void) {
     vga_println("  setcolor fg [bg] - set console colors");
     vga_println("  screen [r c]  - get/set logical screen size");
     vga_println("  mem           - show memory info");
+    vga_println("  heap          - test kmalloc/kfree");
     vga_println("  uptime        - show system uptime");
     vga_println("  version       - show kernel version");
     vga_println("  cpuinfo       - display CPU information");
@@ -86,6 +88,30 @@ static void cmd_mem(void) {
     vga_print("Next free page address: ");
     vga_print_hex64(next);
     vga_putc('\n');
+}
+
+static void cmd_heap(void) {
+    void *a = kmalloc(64);
+    void *b = kmalloc(128);
+    void *c = kmalloc(32);
+    vga_print("kmalloc(64)  -> ");
+    vga_print_hex64((uint64_t)a);
+    vga_putc('\n');
+    vga_print("kmalloc(128) -> ");
+    vga_print_hex64((uint64_t)b);
+    vga_putc('\n');
+    vga_print("kmalloc(32)  -> ");
+    vga_print_hex64((uint64_t)c);
+    vga_putc('\n');
+    kfree(b);
+    kfree(a);
+    void *d = kmalloc(200);  /* должен переиспользовать освобождённую память */
+    vga_print("kfree(b), kfree(a), kmalloc(200) -> ");
+    vga_print_hex64((uint64_t)d);
+    vga_putc('\n');
+    kfree(c);
+    kfree(d);
+    vga_println("heap test ok");
 }
 
 static void cmd_hostname(const char *args) {
@@ -336,6 +362,8 @@ static void shell_execute(const char *line) {
         }
     } else if (str_eq(cmd, "mem")) {
         cmd_mem();
+    } else if (str_eq(cmd, "heap")) {
+        cmd_heap();
     } else if (str_eq(cmd, "hostname")) {
         cmd_hostname(args);
     } else if (str_eq(cmd, "setcolor")) {

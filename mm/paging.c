@@ -28,6 +28,12 @@ void *alloc_page(void) {
     return page;
 }
 
+void *alloc_page_silent(void) {
+    void *page = next_free_page;
+    next_free_page += PAGE_SIZE;
+    return page;
+}
+
 uint64_t paging_get_next_free(void) {
     return (uint64_t)next_free_page;
 }
