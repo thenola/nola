@@ -5,6 +5,44 @@ static uint32_t align_up(uint32_t value, uint32_t align) {
     return (value + align - 1u) & ~(align - 1u);
 }
 
+static uint64_t saved_info_addr = 0;
+
+void multiboot2_set_info(uint64_t info_addr) {
+    saved_info_addr = info_addr;
+}
+
+int multiboot2_get_framebuffer(multiboot_fb_info_t *fb) {
+    if (!fb || saved_info_addr == 0) return 0;
+
+    uint8_t *base = (uint8_t *)(uintptr_t)saved_info_addr;
+    uint32_t total_size = *(uint32_t *)base;
+    struct multiboot_tag *tag = (struct multiboot_tag *)(base + 8);
+
+    while ((uint8_t *)tag < base + total_size && tag->type != MULTIBOOT_TAG_TYPE_END) {
+        if (tag->type == MULTIBOOT_TAG_TYPE_FRAMEBUFFER) {
+            uint8_t *p = (uint8_t *)tag + 8;
+            fb->addr   = *(uint64_t *)p;  p += 8;
+            fb->pitch  = *(uint32_t *)p;  p += 4;
+            fb->width  = *(uint32_t *)p;  p += 4;
+            fb->height = *(uint32_t *)p;  p += 4;
+            fb->bpp    = (uint8_t)*p;     p += 1;
+            fb->type   = (uint8_t)*p;     p += 2; /* type + reserved */
+
+            if (fb->type == MULTIBOOT_FB_TYPE_RGB) {
+                fb->red_shift   = (uint8_t)*p++; fb->red_mask   = (uint8_t)*p++;
+                fb->green_shift = (uint8_t)*p++; fb->green_mask = (uint8_t)*p++;
+                fb->blue_shift = (uint8_t)*p++;  fb->blue_mask  = (uint8_t)*p++;
+            } else {
+                fb->red_shift = fb->red_mask = fb->green_shift = fb->green_mask =
+                    fb->blue_shift = fb->blue_mask = 0;
+            }
+            return 1;
+        }
+        tag = (struct multiboot_tag *)(base + (uint32_t)((uint8_t *)tag - base) + align_up(tag->size, 8u));
+    }
+    return 0;
+}
+
 void multiboot2_dump_info(uint32_t magic, uint64_t info_addr) {
     if (magic != MULTIBOOT2_MAGIC) {
         vga_println("Multiboot2: invalid magic, tags not parsed.");

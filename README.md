@@ -19,6 +19,12 @@ nola/
 └── Makefile
 ```
 
+### Экран
+
+- В **long_mode_init** сделан identity mapping **первых 4 GiB** (2 MiB страницы, 4 PD). Этого хватает для ядра и framebuffer (обычно 0xE0000000+).
+- По умолчанию в **grub.cfg** включён **gfxpayload=1920x1080x32** — консоль в 1920×1080.
+- **Масштаб окна QEMU:** `make run-scaled` или **View → Scale display → Zoom to fit** / **Ctrl+Alt++**.
+
 ### Build
 
 ```bash

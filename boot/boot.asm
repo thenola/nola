@@ -24,6 +24,17 @@ multiboot_entry_tag_start:
     dd start                 ; адрес точки входа (32-битный адрес)
 multiboot_entry_tag_end:
 
+; --- Tag: framebuffer (1920x1080x32) ---
+align 8
+multiboot_fb_tag_start:
+    dw 5
+    dw 0
+    dd multiboot_fb_tag_end - multiboot_fb_tag_start
+    dd 1920
+    dd 1080
+    dd 32
+multiboot_fb_tag_end:
+
 ; --- Tag: end (обязателен) ---
 align 8
     dw 0                     ; type = 0 (end tag)

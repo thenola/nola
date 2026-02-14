@@ -15,11 +15,11 @@ LDFLAGS  := -T linker.ld -nostdlib -z max-page-size=0x1000 -no-pie
 ASFLAGS  := -f elf64
 
 SRCS_C   := kernel/kernel.c drivers/vga.c drivers/keyboard.c arch/idt.c mm/paging.c mm/heap.c \
-            lib/multiboot2.c lib/config.c lib/user.c shell/shell.c fs/fs.c
+            lib/multiboot2.c lib/config.c shell/shell.c fs/fs.c
 SRCS_ASM := boot/boot.asm boot/long_mode_init.asm boot/gdt.asm
 
 OBJS     := kernel/kernel.o drivers/vga.o drivers/keyboard.o arch/idt.o mm/paging.o mm/heap.o \
-            lib/multiboot2.o lib/config.o lib/user.o shell/shell.o fs/fs.o \
+            lib/multiboot2.o lib/config.o shell/shell.o fs/fs.o \
             boot/boot.o boot/long_mode_init.o boot/gdt.o
 
 .PHONY: all clean run debug
@@ -44,6 +44,10 @@ $(ISO): $(TARGET) grub.cfg
 
 run: $(ISO)
 	qemu-system-x86_64 -cdrom $(ISO)
+
+# Масштабирование под большой экран (1920x1080). Требует QEMU с GTK.
+run-scaled: $(ISO)
+	qemu-system-x86_64 -cdrom $(ISO) -display gtk,zoom-to-fit=on
 
 debug: $(ISO)
 	qemu-system-x86_64 -cdrom $(ISO) -s -S

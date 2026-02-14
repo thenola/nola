@@ -8,18 +8,18 @@
 #include "multiboot2.h"
 #include "shell.h"
 #include "fs.h"
-#include "user.h"
 #include "config.h"
 
 void kernel_main(uint32_t mb_magic, uint64_t mb_info_addr) {
-    /* Сразу после загрузки очищаем экран и ставим белый текст на чёрном фоне. */
     (void)mb_magic;
-    (void)mb_info_addr;
+
+    /* Сохраняем multiboot info для парсинга (в т.ч. framebuffer 1920x1080). */
+    multiboot2_set_info(mb_info_addr);
 
     /* Инициализируем конфиг ядра (hostname, цвета, размеры экрана). */
     config_init();
 
-    /* Настраиваем VGA под конфиг. */
+    /* Настраиваем консоль: framebuffer 1920x1080 при наличии, иначе VGA 80x25. */
     const kernel_config_t *cfg = config_get();
     vga_init(cfg->fg, cfg->bg);
 
@@ -37,9 +37,6 @@ void kernel_main(uint32_t mb_magic, uint64_t mb_info_addr) {
 
     /* Инициализация простого in-memory FS. */
     fs_init();
-
-    /* Инициализация пользователей (root и user). */
-    user_init();
 
     shell_run();
 }
